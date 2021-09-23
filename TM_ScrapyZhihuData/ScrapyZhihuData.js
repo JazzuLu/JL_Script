@@ -13,7 +13,7 @@
 //-----------------------------------------------------------
 // @include      *.zhihu.com/people/*
 //-----------------------------------------------------------
-// @require      file:///D:/Workplace/TM_ScrapyZhihuData/ScrapyZhihuData.js
+// @require      file:///D:\Workplace\JL_Script\TM_ScrapyZhihuData\ScrapyZhihuData.js
 //-----------------------------------------------------------
 // @run-at       document-idle
 // @original-author Jazzu Lu
@@ -139,6 +139,9 @@ function jlLoading(show=true){
   $("body").append(floatWidget);
   renderBtn();
 })();
+/** 全局变量 **/
+const HEADER_STRING = ["title","link","des","voteUp","commentCount","dateModified","dateCreate"]
+const HEADER_OBJ = {title:'标题',link:'链接',des:'描述',voteUp:'赞同',commentCount:'评论',dateCreate:'创建时间',dateModified:'更新时间'}
 
 /** ----------------- 事件 ------------------- **/
 async function fetchSingle({scrollTiming = 2000, awaitTiming = 2000}){
@@ -146,11 +149,18 @@ async function fetchSingle({scrollTiming = 2000, awaitTiming = 2000}){
   $('html, body').animate({ scrollTop: $(document).height() }, scrollTiming);
   await window.sleep(awaitTiming);
   $('.ListShortcut .List-item').each((idx,item)=>{
+    /** 处理时间 **/
+    let dateCreate = $(item).find('meta[itemprop=dateCreated]').attr('content') || $(item).find('meta[itemprop=datePublished]').attr('content');
+    dateCreate = dateCreate ? new Date(dateCreate).format() : '';
+    let dateModified = $(item).find('meta[itemprop=dateModified]').attr('content');
+    dateModified = dateModified ? new Date(dateModified).format() : '';
     rows.push({
       title: $(item).find('.ContentItem-title a').text(),
       link: 'https:' + $(item).find('.ContentItem-title a').attr('href'),
       des: $(item).find('.RichContent-inner .RichText').text(),
       voteUp: $(item).find('.ContentItem-actions .VoteButton--up').text()?.split(' ')[1] || 0,
+      commentCount: $(item).find('meta[itemprop=commentCount]').attr('content'),
+      dateCreate, dateModified,
     })
   })
   return rows;
@@ -165,16 +175,16 @@ async function writeData(timing){
 function exportFile(data){
   let sheetName = $('.ProfileMain-header .Tabs-link.is-active').eq(0).text();
   let fileName = $('.ProfileHeader-name').text() + sheetName;
-  data.unshift({title:'标题',link:'链接',des:'描述',voteUp:'赞同'})
-  let ws = XLSX.utils.json_to_sheet(data, {header:["title","link","des","voteUp"],skipHeader:true});
+  data.unshift(HEADER_OBJ)
+  let ws = XLSX.utils.json_to_sheet(data, {header:HEADER_STRING,skipHeader:true});
   for (const wsKey in ws) {
-    if(ws[wsKey]?.v?.indexOf('http')!=-1){
+    if(ws[wsKey]?.v && ws[wsKey]?.v?.indexOf('http')!=-1){
       ws[wsKey].l = {Target:ws[wsKey].v,Tooltip:ws[wsKey].v}
     }
   }
-  ws['!cols'] = [ {wpx: 200}, {wpx: 280}, {wpx: 200}, {wpx: 60}, ];
+  ws['!cols'] = [ {wpx: 200}, {wpx: 280}, {wpx: 200}, {wpx: 60}, {wpx: 60}, {wpx: 120}, {wpx: 120}, ];
   let wb = { Sheets: {[sheetName]:ws}, SheetNames:[sheetName] }
-  console.log('wb=========',ws)
+  console.log('wb=========',data)
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 }
 async function exportSingle(){
