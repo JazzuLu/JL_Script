@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         获取知乎用户文章、回答等数据
 // @namespace    http://tampermonkey.net/
-// @version      1.3.0
+// @version      1.4.0
 // @description  获取知乎某用户下的文章数据
 // @author       Jazzu Lu
 //-----------------------------------------------------------
